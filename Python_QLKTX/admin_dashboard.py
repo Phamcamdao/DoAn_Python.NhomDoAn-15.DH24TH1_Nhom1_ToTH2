@@ -6,6 +6,8 @@ import pyodbc
 from datetime import datetime
 from tkcalendar import DateEntry
 import re
+import openpyxl
+from tkinter import filedialog
 
 # --- Import font từ app_styles ---
 try:
@@ -247,15 +249,17 @@ class AdminDashboard:
     # --- Các hàm còn lại (Giữ nguyên) ---
     def create_button_frame(self, parent):
         button_frame = tk.Frame(parent, pady=10); button_frame.pack(fill="x")
-        self.btn_them = tk.Button(button_frame, text="Thêm", font=FONT_BUTTON, width=10, bg="#4CAF50", fg="white", command=self.action_add); self.btn_them.pack(side="left", padx=10, pady=5)
-        self.btn_luu = tk.Button(button_frame, text="Lưu", font=FONT_BUTTON, width=10, bg="#008CBA", fg="white", command=self.action_save); self.btn_luu.pack(side="left", padx=10, pady=5)
-        self.btn_sua = tk.Button(button_frame, text="Sửa", font=FONT_BUTTON, width=10, bg="#f44336", fg="white", command=self.action_edit); self.btn_sua.pack(side="left", padx=10, pady=5)
+        self.btn_them = tk.Button(button_frame, text="Thêm", font=FONT_BUTTON, width=10, bg="#2F0C4A", fg="white", command=self.action_add); self.btn_them.pack(side="left", padx=10, pady=5)
+        self.btn_luu = tk.Button(button_frame, text="Lưu", font=FONT_BUTTON, width=10, bg="#36DFBD", fg="white", command=self.action_save); self.btn_luu.pack(side="left", padx=10, pady=5)
+        self.btn_sua = tk.Button(button_frame, text="Sửa", font=FONT_BUTTON, width=10, bg="#c9c321", fg="white", command=self.action_edit); self.btn_sua.pack(side="left", padx=10, pady=5)
         self.btn_xoa = tk.Button(button_frame, text="Xóa", font=FONT_BUTTON, width=10, bg="#555555", fg="white", command=self.action_delete); self.btn_xoa.pack(side="left", padx=10, pady=5)
-        self.btn_huy = tk.Button(button_frame, text="Hủy", font=FONT_BUTTON, width=10, bg="#ff9800", fg="white", command=self.action_cancel); self.btn_huy.pack(side="left", padx=10, pady=5)
+        self.btn_huy = tk.Button(button_frame, text="Hủy", font=FONT_BUTTON, width=10, bg="#77163e", fg="white", command=self.action_cancel); self.btn_huy.pack(side="left", padx=10, pady=5)
         self.btn_log_payment = tk.Button(button_frame, text="Ghi nhận đóng tiền", font=FONT_BUTTON, width=15, bg="#28a745", fg="white", command=self.open_log_payment_window, state="disabled"); self.btn_log_payment.pack(side="left", padx=10, pady=5)
         self.btn_view_history = tk.Button(button_frame, text="Xem lịch sử", font=FONT_BUTTON, width=12, command=self.open_history_window, state="disabled"); self.btn_view_history.pack(side="left", padx=10, pady=5)
         self.btn_logout = tk.Button(button_frame, text="Đăng xuất", font=FONT_BUTTON, width=10, command=self.action_logout); self.btn_logout.pack(side="right", padx=10, pady=5)
         self.btn_thoat = tk.Button(button_frame, text="Thoát", font=FONT_BUTTON, width=10, command=self.confirm_exit); self.btn_thoat.pack(side="right", padx=10, pady=5)
+        self.btn_xuat = tk.Button(button_frame, text="Xuất Excel", font=FONT_BUTTON, width=10, command=self.XuatExcel); self.btn_xuat.pack(side="right", padx=10, pady=5)
+        
 
     def action_logout(self): self.window.destroy(); self.login_form.clear_credentials(); self.login_window.deiconify()
     def confirm_exit(self):
@@ -437,7 +441,42 @@ class AdminDashboard:
         # --- KẾT THÚC THÊM MỚI ---
             
         self.refresh_treeview(sql, params)
-    
+    def XuatExcel(self):
+            # Lấy dữ liệu từ Treeview
+            rows = [self.tree.item(item, "values") for item in self.tree.get_children()]
+            if not rows:
+                messagebox.showwarning("Thông báo", "Không có dữ liệu để xuất Excel!")
+                return
+
+            # Hỏi người dùng chọn nơi lưu file
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                filetypes=[("Excel files", "*.xlsx")],
+                title="Lưu file Excel"
+            )
+            if not file_path:
+                return  
+
+            # Tạo workbook mới
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Danh sách đặt chỗ"
+
+            # Tiêu đề cột
+            columns = ["Mã Đặt Chỗ", "Mã Khách Hàng", "Mã Nhân Viên", "Mã Tour",
+                    "Người Lớn", "Trẻ Em", "Tổng Tiền", "Ngày Đặt", "Trạng Thái"]
+            ws.append(columns)
+
+            # Thêm dữ liệu
+            for row in rows:
+                ws.append(row)
+
+            # Lưu file
+            try:
+                wb.save(file_path)
+                messagebox.showinfo("Thành công", f"Xuất Excel thành công:\n{file_path}")
+            except Exception as e:
+                messagebox.showerror("Lỗi", f"Không thể lưu file Excel:\n{e}")
 
     def search_by_room_only(self, event=None):
         selected_room = self.search_room_var.get()
